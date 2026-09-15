@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>English Test Trainer · B1/B2</title>
+<style>
+  :root {
+    --ink:#1E2A32; --paper:#F1F3EE; --card:#fff; --line:#D9DFD5;
+    --green:#0F6B4F; --green-soft:#E3EFE9; --red:#B3372F; --red-soft:#F7E8E6; --muted:#6B7770;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--paper); color:var(--ink);
+         font:16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { font-family:Georgia, serif; font-size:26px; margin:0 0 4px; }
+  h2 { font-family:Georgia, serif; font-size:19px; margin:18px 0 8px; }
+  .sub { color:var(--muted); font-size:14px; margin-bottom:18px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px; }
+  .prompt, .passage { font-family:Georgia, serif; font-size:17px; line-height:1.6; white-space:pre-line; }
+  .hint { color:var(--muted); font-size:14px; }
+  button { border:0; border-radius:10px; padding:13px 16px; font-size:16px; font-weight:600; cursor:pointer; width:100%; }
+  .primary { background:var(--green); color:#fff; }
+  .dark { background:var(--ink); color:#fff; }
+  .danger { background:var(--red); color:#fff; }
+  .ghost { background:var(--card); border:1.5px solid var(--line); color:var(--ink); font-weight:500; }
+  button:disabled { background:var(--line); color:var(--muted); cursor:default; }
+  .opt { text-align:left; font-weight:400; font-size:15px; padding:11px 13px; margin-bottom:8px;
+         background:var(--card); border:1.5px solid var(--line); }
+  .opt.sel { border-color:var(--ink); background:#EEF1EC; }
+  .opt.right { border-color:var(--green); background:var(--green-soft); }
+  .opt.wrong { border-color:var(--red); background:var(--red-soft); }
+  .head { position:sticky; top:0; z-index:10; background:var(--ink); color:#fff; padding:10px 20px;
+          display:flex; justify-content:space-between; align-items:center; }
+  .head[hidden] { display:none; }
+  .head .sec { font-size:14px; font-weight:600; }
+  .head .prog { font-size:12px; color:#9FB0A8; }
+  .head .clock { font-family:Georgia, serif; font-size:24px; font-variant-numeric:tabular-nums; }
+  .clock.low { color:#F2B8B2; }
+  textarea { width:100%; border:1.5px solid var(--line); border-radius:10px; background:var(--paper);
+             color:var(--ink); padding:12px; font:16px/1.5 inherit; resize:vertical; }
+  .timer-big { font-family:Georgia, serif; font-size:46px; text-align:center; margin:12px 0 2px;
+               font-variant-numeric:tabular-nums; }
+  .rec { text-align:center; color:var(--red); font-size:14px; margin-bottom:10px; }
+  .transcript { background:var(--paper); border-radius:10px; padding:12px; font-size:15px;
+                color:var(--muted); min-height:48px; margin:10px 0; white-space:pre-wrap; }
+  .err { background:var(--red-soft); color:var(--red); border-radius:10px; padding:12px; font-size:14px; margin:10px 0; }
+  .explain { background:var(--paper); border-radius:10px; padding:12px; font-size:14px; color:var(--muted); margin:8px 0; }
+  .cefr { font-family:Georgia, serif; font-size:34px; color:var(--green); }
+  .mistake { background:var(--paper); border-radius:10px; padding:10px 12px; margin:8px 0; font-size:15px; }
+  .mistake .orig { color:var(--red); text-decoration:line-through; }
+  .mistake .fix { color:var(--green); font-weight:600; }
+  .mistake .rule { color:var(--muted); font-size:13px; margin-top:4px; }
+  details { margin-top:10px; font-size:15px; }
+  summary { cursor:pointer; font-weight:600; }
+  .improved { font-family:Georgia, serif; margin-top:8px; line-height:1.6; }
+  .row { display:flex; gap:10px; margin-top:10px; }
+  .row button { flex:1; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .modebtn { text-align:left; }
+  .modebtn .t { font-weight:600; font-size:15px; }
+  .modebtn .d { font-weight:400; font-size:12px; color:var(--muted); }
+  .spinner { width:30px; height:30px; border-radius:50%; border:3px solid var(--line);
+             border-top-color:var(--green); animation:spin 0.9s linear infinite; margin:40px auto 10px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .center { text-align:center; }
+  .big-result { background:var(--ink); color:#fff; border-radius:14px; padding:22px; text-align:center; margin:14px 0; }
+  .big-result .lvl { font-family:Georgia, serif; font-size:48px; }
+  .big-result .det { color:#9FB0A8; font-size:14px; margin-top:6px; }
+  .ok { color:var(--green); font-size:14px; margin:6px 0; }
+  .mb8 { margin-bottom:8px; } .mt10 { margin-top:10px; } .mt14 { margin-top:14px; }
+</style>
+</head>
+<body>
+
+<div class="head" id="head" hidden>
+  <div>
+    <div class="prog" id="hProg"></div>
+    <div class="sec" id="hSec"></div>
+  </div>
+  <div class="clock" id="hClock">55:00</div>
+</div>
+
+<div class="wrap">
+  <!-- ───── Menu ───── -->
+  <div id="menu">
+    <div class="hint" style="color:var(--green); letter-spacing:0.04em; font-size:12px">CEFR · target B1/B2</div>
+    <h1>English Test Trainer</h1>
+    <div class="sub">Reading, listening, writing and speaking in one place. Tasks are generated and graded by claude CLI — it remembers your mistakes within a run.</div>
+
+    <div class="card">
+      <div style="font-size:14px; font-weight:600; margin-bottom:10px">Feedback mode</div>
+      <div class="grid2">
+        <button class="ghost modebtn" id="mTrain"><span class="t">Practice</span><br><span class="d">feedback after every answer</span></button>
+        <button class="ghost modebtn" id="mExam"><span class="t">Exam</span><br><span class="d">all feedback at the end</span></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:14px; font-weight:600; margin-bottom:10px">Topics</div>
+      <div class="grid3">
+        <button class="ghost modebtn" data-theme="corporate"><span class="t">Corporate</span><br><span class="d">trainings, reports, reviews</span></button>
+        <button class="ghost modebtn" data-theme="general"><span class="t">General</span><br><span class="d">travel, city, daily life</span></button>
+        <button class="ghost modebtn" data-theme="mixed"><span class="t">Mixed</span><br><span class="d">a bit of both</span></button>
+      </div>
+    </div>
+
+    <button class="primary" id="startFull" style="text-align:left; padding:16px">
+      Full test — 55 minutes<br>
+      <span style="font-weight:400; font-size:13px; color:#CDE5DB">3 texts · 3 audios · 2 written · 2 spoken answers</span>
+    </button>
+    <div class="grid2 mt10">
+      <button class="ghost modebtn" data-sec="reading"><span class="t">Reading</span><br><span class="d">15 min</span></button>
+      <button class="ghost modebtn" data-sec="listening"><span class="t">Listening</span><br><span class="d">12 min</span></button>
+      <button class="ghost modebtn" data-sec="writing"><span class="t">Writing</span><br><span class="d">16 min</span></button>
+      <button class="ghost modebtn" data-sec="speaking"><span class="t">Speaking</span><br><span class="d">12 min</span></button>
+    </div>
+    <div class="hint mt14">Listening is read aloud by the system voice; speaking is recorded from your microphone (allow access on first use). Generating a task takes 10–30 seconds — the next one is prefetched while you work on the current one.</div>
+  </div>
+
+  <!-- ───── Test ───── -->
+  <div id="test" hidden><div id="taskArea"></div></div>
+
+  <!-- ───── Results ───── -->
+  <div id="results" hidden></div>
+</div>
+
+<script>
+// ───── data ─────
+const TOPICS = {
+  // Entries are broad DIRECTIONS, not fixed titles: the model invents a fresh
+  // specific angle within each one every time (session memory prevents repeats).
+  corporate: {
+    reading: [
+      "trainings and professional development in a company",
+      "reports, results and metrics shared with a team",
+      "performance reviews and feedback processes",
+      "lessons learned, errors found and process improvements",
+      "team productivity and ways of working",
+      "wellbeing, workload and work-life balance policies",
+      "onboarding, internal tools and workplace policies",
+      "plans, priorities and deadlines for the next period",
+    ],
+    listening: [
+      "a manager and an employee discussing results and feedback",
+      "colleagues analysing errors in a report and agreeing on fixes",
+      "a discussion about improving team effectiveness",
+      "a conversation about workload, burnout or work-life balance",
+      "planning a next quarter or sprint at a meeting",
+      "a one-on-one about growth, motivation or career goals",
+      "raising and discussing a risk, delay or problem",
+      "a training or workshop being introduced or debriefed",
+    ],
+    writing: [
+      "a progress or status report email to a manager",
+      "an email aggregating results and highlighting the main errors",
+      "an opinion piece about trainings or professional development",
+      "an email proposing plans or improvements for the next period",
+      "an opinion piece about team effectiveness or collaboration",
+      "an opinion piece about work-life balance or workload",
+      "a follow-up email with agreed action items",
+    ],
+    speaking: [
+      "the value of trainings and learning at work",
+      "how to report progress and problems to a manager",
+      "what improves a team's effectiveness",
+      "what helps to keep a healthy work-life balance",
+      "learning from a mistake found in your work",
+      "giving and receiving feedback at work",
+      "what motivates people to work better",
+      "plans for professional growth",
+      "making meetings and processes more useful",
+    ],
+  },
+  general: {
+    reading: [
+      "a company announcing a move to a new office","a city cycling event for amateurs",
+      "a change in a company's remote work policy","a new feature in a mobile banking app",
+      "an airport announcement about delayed flights","a short review of a mountain hiking trail",
+      "a notice about a public library's new opening hours",
+      "a customer complaint about a late food delivery","an announcement of a free online course",
+    ],
+    listening: [
+      "two colleagues discussing plans for a team offsite","a voicemail about rescheduling a doctor's appointment",
+      "a tour guide describing a city walking route",
+      "two friends deciding which restaurant to book","a radio announcement about weekend road closures",
+      "a podcast host introducing an episode about sleep habits","a hotel receptionist explaining check-out options",
+    ],
+    writing: [
+      "declining a colleague's invitation politely with an alternative",
+      "opinion: working from home vs working from the office",
+      "a complaint email about a wrong or late online order",
+      "recommending your city to a friend visiting for one day",
+      "asking a landlord or service provider to fix a problem",
+      "an email to a colleague handing over a task before vacation",
+    ],
+    speaking: [
+      "a typical working day, likes and dislikes",
+      "a recent trip and what happened there",
+      "technology in everyday life: helpful or too much",
+      "a skill you would like to learn and why",
+      "describing your city to a stranger",
+      "planning ahead vs being spontaneous",
+    ],
+  },
+};
+function topicPool(kind) {
+  if (theme === "mixed") return [...TOPICS.corporate[kind], ...TOPICS.general[kind]];
+  return TOPICS[theme][kind];
+}
+const SECTION_NAME = { reading:"Reading", listening:"Listening", writing:"Writing", speaking:"Speaking" };
+
+// ───── utils ─────
+const $ = (id) => document.getElementById(id);
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+}
+function pickN(arr, n) {
+  const c = [...arr], out = [];
+  while (out.length < n && c.length) out.push(c.splice(Math.floor(Math.random()*c.length),1)[0]);
+  return out;
+}
+async function api(payload) {
+  const r = await fetch("/api", { method:"POST",
+    headers:{ "content-type":"application/json" }, body: JSON.stringify(payload) });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || ("HTTP " + r.status));
+  return d;
+}
+function fmt(sec) { const m = Math.floor(sec/60), s = sec%60; return m + ":" + String(s).padStart(2,"0"); }
+
+// ───── state ─────
+let examMode = false, theme = "corporate", plan = [], idx = 0, cache = {}, pending = {};
+let mcqLog = [], evals = [], sectionEvals = [], timeLeft = 0, timerInt = null, finished = false;
+
+// ───── menu ─────
+function setMode(m) {
+  examMode = m;
+  $("mTrain").classList.toggle("sel", !m);
+  $("mExam").classList.toggle("sel", m);
+  $("mTrain").style.borderColor = m ? "var(--line)" : "var(--green)";
+  $("mExam").style.borderColor = m ? "var(--green)" : "var(--line)";
+}
+$("mTrain").onclick = () => setMode(false);
+$("mExam").onclick = () => setMode(true);
+setMode(false);
+
+function setTheme(t) {
+  theme = t;
+  document.querySelectorAll("[data-theme]").forEach(b =>
+    b.style.borderColor = b.dataset.theme === t ? "var(--green)" : "var(--line)");
+}
+document.querySelectorAll("[data-theme]").forEach(b => b.onclick = () => setTheme(b.dataset.theme));
+setTheme("corporate");
+
+$("startFull").onclick = () => start("full");
+document.querySelectorAll("[data-sec]").forEach(b => b.onclick = () => start(b.dataset.sec));
+
+function start(mode) {
+  plan = []; cache = {}; pending = {}; mcqLog = []; evals = []; sectionEvals = []; idx = 0; finished = false;
+  const R = () => pickN(topicPool("reading"),3).map(t => ({type:"reading", topic:t}));
+  const L = () => pickN(topicPool("listening"),3).map(t => ({type:"listening", topic:t}));
+  const W = () => pickN(topicPool("writing"),2).map(t => ({type:"writing", topic:t}));
+  const S = () => pickN(topicPool("speaking"),2).map(t => ({type:"speaking", topic:t}));
+  if (mode === "full") { plan = [...R(), ...L(), ...W(), ...S()]; timeLeft = 55*60; }
+  else if (mode === "reading") { plan = R(); timeLeft = 15*60; }
+  else if (mode === "listening") { plan = L(); timeLeft = 12*60; }
+  else if (mode === "writing") { plan = W(); timeLeft = 16*60; }
+  else { plan = S(); timeLeft = 12*60; }
+  $("menu").hidden = true; $("results").hidden = true; $("test").hidden = false; $("head").hidden = false;
+  clearInterval(timerInt);
+  timerInt = setInterval(() => {
+    timeLeft--;
+    renderClock();
+    if (timeLeft <= 0) finish();
+  }, 1000);
+  renderClock();
+  renderTask();
+}
+
+function renderClock() {
+  $("hClock").textContent = fmt(Math.max(0,timeLeft));
+  $("hClock").classList.toggle("low", timeLeft < 120);
+}
+
+async function finish() {
+  if (finished) return;
+  finished = true;
+  clearInterval(timerInt);
+  try { speechSynthesis.cancel(); } catch(e) {}
+  $("test").hidden = true; $("head").hidden = true;
+  const box = $("results");
+  box.hidden = false; box.innerHTML = "";
+  const spin = el("div","center");
+  spin.append(el("div","spinner"), el("div","hint","The examiner is finalizing your results…"));
+  box.append(spin);
+  // wait for background reading/listening evals, then request the whole-exam verdict
+  await Promise.allSettled(sectionEvals.map(r => r.promise));
+  let exam = null;
+  const results = compileResults();
+  if (Object.keys(results).length) {
+    try { exam = await api({ action: "eval_exam", results }); } catch(e) {}
+  }
+  renderResults(exam);
+}
+
+function compileResults() {
+  const out = {};
+  ["reading","listening"].forEach(sec => {
+    const log = mcqLog.filter(x => x.section === sec);
+    if (!log.length) return;
+    out[sec] = {
+      right: log.filter(x => x.chosen === x.correct).length,
+      total: log.length,
+      comments: sectionEvals.filter(r => r.section === sec && r.result)
+        .map(r => ({ title: r.title, feedback: r.result.feedback })),
+    };
+  });
+  ["writing","speaking"].forEach(kind => {
+    const list = evals.filter(e => e.kind === kind).map(e => ({
+      task: e.task, cefr: e.result.cefr, score: e.result.score,
+      error_rules: (e.result.errors || []).map(x => x.rule),
+    }));
+    if (list.length) out[kind] = list;
+  });
+  return out;
+}
+
+// background eval of a reading/listening block (does not block moving to the next task)
+function queueSectionEval(meta, answers) {
+  const rec = { section: meta.section, title: meta.title, result: null };
+  rec.promise = api({
+    action: "eval_" + meta.section, title: meta.title,
+    answers: answers.map(a => ({ q:a.q, options:a.options, correct:a.correct, chosen:a.chosen })),
+  }).then(r => { rec.result = r; }).catch(() => {});
+  sectionEvals.push(rec);
+}
+
+function nextTask() {
+  try { speechSynthesis.cancel(); } catch(e) {}
+  if (idx + 1 >= plan.length) finish();
+  else { idx++; renderTask(); }
+}
+
+// ───── generation with prefetch ─────
+function genFor(i) {
+  if (i >= plan.length) return null;
+  const t = plan[i];
+  if (cache[i]) return Promise.resolve(cache[i]);
+  if (!pending[i]) {
+    pending[i] = api({ action: "generate_" + t.type, topic: t.topic })
+      .then(d => { cache[i] = d; return d; })
+      .finally(() => { delete pending[i]; });
+  }
+  return pending[i];
+}
+
+// ───── task rendering ─────
+function renderTask() {
+  const t = plan[idx];
+  $("hProg").textContent = "Task " + (idx+1) + " of " + plan.length;
+  $("hSec").textContent = SECTION_NAME[t.type];
+  const area = $("taskArea");
+  area.innerHTML = "";
+
+  const spin = el("div", "center");
+  spin.append(el("div","spinner"), el("div","hint","Generating the task…"));
+  area.append(spin);
+  // Prefetch only after the current task: the server is single-threaded, otherwise
+  // the current task queues behind the prefetch and the student waits twice as long.
+  genFor(idx).then(d => { genFor(idx + 1); if (plan[idx] === t) { area.innerHTML = "";
+    ({ reading: renderReading, listening: renderListening,
+       writing: renderWriting, speaking: renderSpeaking })[t.type](area, d); } })
+  .catch(e => {
+    area.innerHTML = "";
+    const box = el("div","err","Failed to generate the task: " + e.message);
+    const btn = el("button","danger","Retry");
+    btn.onclick = renderTask;
+    area.append(box, btn);
+  });
+}
+
+function renderReading(area, data) {
+  const c = el("div","card");
+  c.append(el("div","prompt", data.title), el("div","passage mt10", data.passage));
+  area.append(c);
+  renderMcq(area, data.questions, { section:"reading", title:data.title });
+}
+
+function renderListening(area, data) {
+  let plays = 0, playing = false;
+  const c = el("div","card");
+  c.append(el("div","prompt", data.title),
+           el("div","hint mt10","Listen to the recording (2 plays max) and answer the questions. The script is hidden, just like in the real test."));
+  const btn = el("button","dark mt10","▶ Play");
+  const errBox = el("div","err"); errBox.hidden = true;
+  c.append(btn, errBox);
+  area.append(c);
+  const qWrap = el("div"); qWrap.hidden = true; area.append(qWrap);
+  renderMcq(qWrap, data.questions, { section:"listening", title:data.title });
+
+  const showFallback = () => {
+    errBox.textContent = "Text-to-speech failed — here is the script; read it once, quickly, without going back: " + data.script;
+    errBox.hidden = false; qWrap.hidden = false;
+  };
+  const donePlaying = () => {
+    playing = false;
+    btn.textContent = plays >= 2 ? "No plays left" : "▶ Play again";
+    btn.disabled = plays >= 2;
+  };
+  btn.onclick = () => {
+    if (plays >= 2 || playing) return;
+    try {
+      speechSynthesis.cancel();
+      playing = true; plays++;
+      qWrap.hidden = false;
+      btn.textContent = "Playing…"; btn.disabled = true;
+      speakScript(data.script, {
+        onEnd: donePlaying,
+        onError: () => { donePlaying(); showFallback(); },
+      });
+    } catch(e) { playing = false; showFallback(); }
+  };
+}
+
+function renderMcq(area, questions, meta) {
+  let qIdx = 0, chosen = null, revealed = false;
+  const blockLog = [];
+  const c = el("div","card");
+  area.append(c);
+
+  function draw() {
+    c.innerHTML = "";
+    const q = questions[qIdx];
+    c.append(el("div","hint mb8","Question " + (qIdx+1) + " of " + questions.length),
+             el("div","prompt", q.q));
+    const optWrap = el("div","mt10");
+    q.options.forEach((opt, i) => {
+      const b = el("button","opt", opt);
+      if (revealed) {
+        if (i === q.correct) b.classList.add("right");
+        else if (i === chosen) b.classList.add("wrong");
+      } else if (i === chosen) b.classList.add("sel");
+      b.onclick = () => {
+        if (revealed) return;
+        chosen = i;
+        if (!examMode) revealed = true;
+        draw();
+      };
+      optWrap.append(b);
+    });
+    c.append(optWrap);
+    if (revealed) c.append(el("div","explain", q.explain));
+    const next = el("button", "primary mt10", qIdx+1 >= questions.length ? "Finish block" : "Next");
+    next.disabled = chosen === null;
+    next.onclick = () => {
+      const q = questions[qIdx];
+      const entry = { section:meta.section, q:q.q, options:q.options, correct:q.correct, chosen, explain:q.explain };
+      mcqLog.push(entry); blockLog.push(entry);
+      if (qIdx+1 >= questions.length) { queueSectionEval(meta, blockLog); nextTask(); }
+      else { qIdx++; chosen = null; revealed = false; draw(); }
+    };
+    c.append(next);
+  }
+  draw();
+}
+
+// ───── eval card (shared by writing and speaking) ─────
+function evalCard(r) {
+  const c = el("div","card");
+  const top = el("div"); top.style.display = "flex"; top.style.alignItems = "baseline"; top.style.gap = "12px";
+  top.append(el("div","cefr", r.cefr), el("div","hint", r.score + "/5"));
+  c.append(top);
+  if (r.strengths && r.strengths.length) c.append(el("div","ok", r.strengths.join(" · ")));
+  (r.errors || []).forEach(e => {
+    const m = el("div","mistake");
+    m.append(el("span","orig", e.original), document.createTextNode(" "),
+             el("span","fix", e.corrected), el("div","rule", e.rule));
+    c.append(m);
+  });
+  if (r.improved) {
+    const d = el("details"); d.append(el("summary","", "B2 version"), el("div","improved", r.improved));
+    c.append(d);
+  }
+  return c;
+}
+
+async function submitForEval(area, kind, task, answer, submitBtn) {
+  submitBtn.disabled = true; submitBtn.textContent = "The examiner is checking…";
+  try {
+    const r = await api({ action: "eval_" + kind, task, answer });
+    evals.push({ kind, task, answer, result: r });
+    if (examMode) { nextTask(); return; }
+    area.innerHTML = "";
+    area.append(evalCard(r));
+    const next = el("button","primary mt10","Next");
+    next.onclick = nextTask;
+    area.append(next);
+  } catch (e) {
+    submitBtn.disabled = false; submitBtn.textContent = "Submit for review";
+    let err = area.querySelector(".err");
+    if (!err) { err = el("div","err"); submitBtn.before(err); }
+    err.textContent = "Review failed: " + e.message;
+  }
+}
+
+// ───── writing ─────
+function renderWriting(area, data) {
+  const min = data.min_words || 55;
+  const c = el("div","card");
+  c.append(el("div","prompt", data.task));
+  const ta = el("textarea"); ta.rows = 8; ta.placeholder = "Write your answer in English…";
+  const wc = el("div","hint mt10");
+  const btn = el("button","primary mt10","Submit for review");
+  c.append(ta, wc, btn); area.append(c);
+  function upd() {
+    const w = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+    wc.textContent = w + " words" + (w < min ? " · need ≥ " + min : "");
+    wc.style.color = w >= min ? "var(--green)" : "var(--muted)";
+    btn.disabled = w < min;
+  }
+  ta.oninput = upd; upd();
+  btn.onclick = () => submitForEval(area, "writing", data.task, ta.value.trim(), btn);
+}
+
+// ───── TTS engine: per-line playback with two voices and natural pauses ─────
+function pickEnglishVoices() {
+  const all = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith("en"));
+  // prefer high-quality voices over the robotic defaults
+  const score = v =>
+    (/google/i.test(v.name) ? 4 : 0) +
+    (/enhanced|premium|natural|neural|siri/i.test(v.name) ? 3 : 0) +
+    (/^en-us/i.test(v.lang) ? 2 : /^en-gb/i.test(v.lang) ? 1 : 0);
+  const sorted = [...all].sort((a, b) => score(b) - score(a));
+  const FEMALE = /female|samantha|victoria|karen|moira|tessa|fiona|ava|allison|susan|zoe|serena|kate|martha/i;
+  const MALE = /(?<!fe)male|daniel|alex\b|fred|tom\b|oliver|aaron|arthur|gordon|nathan|james|ryan/i;
+  const female = sorted.find(v => FEMALE.test(v.name)) || sorted[0] || null;
+  const male = sorted.find(v => v !== female && MALE.test(v.name))
+            || sorted.find(v => v !== female) || female;
+  return { A: female, B: male, solo: sorted[0] || null };
+}
+
+// split the script into spoken chunks: dialogue lines by speaker, monologue by sentence
+function parseScript(script) {
+  const chunks = [];
+  const parts = script.split(/\n+|(?=\b[AB]:\s)/).map(t => t.trim()).filter(Boolean);
+  for (const part of parts) {
+    const m = part.match(/^([AB]):\s*(.+)$/s);
+    if (m) chunks.push({ speaker: m[1], text: m[2] });
+    else part.split(/(?<=[.!?])\s+/).forEach(t => t.trim() && chunks.push({ speaker: null, text: t }));
+  }
+  return chunks;
+}
+
+function speakScript(script, { onEnd, onError }) {
+  const chunks = parseScript(script);
+  const voices = pickEnglishVoices();
+  let i = 0, dead = false;
+  const next = () => {
+    if (dead) return;
+    if (i >= chunks.length) { onEnd(); return; }
+    const line = chunks[i++];
+    const u = new SpeechSynthesisUtterance(line.text);
+    const v = line.speaker === "A" ? voices.A : line.speaker === "B" ? voices.B : voices.solo;
+    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-US";
+    u.rate = 1.0;
+    // a short breath between speaker turns, a smaller one between sentences
+    u.onend = () => setTimeout(next, line.speaker ? 380 : 220);
+    u.onerror = (e) => {
+      if (e.error === "canceled" || e.error === "interrupted") { dead = true; return; }
+      dead = true; onError();
+    };
+    speechSynthesis.speak(u);
+  };
+  next();
+  return () => { dead = true; };
+}
+
+// ───── speaking ─────
+function renderSpeaking(area, data) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const dur = Math.min(90, Math.max(30, data.seconds || 60));
+  let rec = null, secInt = null, seconds = dur, finalText = "", lastHeard = "", active = false;
+
+  const c = el("div","card");
+  c.append(el("div","prompt", data.question),
+           el("div","hint mt10","Speak for 45–60 seconds. A pause longer than ~5 seconds restarts recognition — just keep going."));
+  const idle = el("div","mt10");
+  const startBtn = el("button","dark","● Start (" + dur + " sec)");
+  idle.append(startBtn);
+  const recArea = el("div"); recArea.hidden = true;
+  const clock = el("div","timer-big", fmt(dur));
+  const live = el("div","transcript");
+  const stopBtn = el("button","danger","Finish answer");
+  recArea.append(clock, el("div","rec","● recording — keep speaking"), live, stopBtn);
+  const editArea = el("div"); editArea.hidden = true;
+  const ta = el("textarea"); ta.rows = 6; ta.placeholder = "Your spoken answer…";
+  const wc = el("div","hint mt10");
+  const submitBtn = el("button","primary mt10","Submit for review");
+  editArea.append(ta, wc, submitBtn);
+  c.append(idle, recArea, editArea);
+  area.append(c);
+
+  function updWc() {
+    const w = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+    wc.textContent = w + " words · check and correct the recognized text";
+    submitBtn.disabled = w < 15;
+  }
+  ta.oninput = updWc;
+
+  startBtn.onclick = () => {
+    idle.hidden = true; recArea.hidden = false;
+    seconds = dur; finalText = ""; active = true;
+    if (SR) {
+      rec = new SR();
+      rec.lang = "en-US"; rec.continuous = true; rec.interimResults = true;
+      rec.onresult = (ev) => {
+        let interim = "";
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          if (ev.results[i].isFinal) finalText += ev.results[i][0].transcript + " ";
+          else interim += ev.results[i][0].transcript;
+        }
+        lastHeard = (finalText + interim).trim();
+        live.textContent = lastHeard;
+      };
+      rec.onend = () => { if (active) { try { rec.start(); } catch(e){} } };
+      rec.onerror = (e) => {
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          live.textContent = "Microphone blocked — allow access (icon left of the address bar) and reload the page. For now you can type your answer from memory.";
+        }
+      };
+      try { rec.start(); } catch(e){}
+    } else {
+      live.textContent = "Web Speech API is not available in this browser (use Chrome) — speak out loud, then type your answer from memory.";
+    }
+    secInt = setInterval(() => {
+      seconds--;
+      clock.textContent = fmt(Math.max(0,seconds));
+      clock.style.color = seconds <= 10 ? "var(--red)" : "var(--ink)";
+      if (seconds <= 0) stop();
+    }, 1000);
+  };
+
+  function stop() {
+    active = false;
+    clearInterval(secInt);
+    if (rec) { try { rec.stop(); } catch(e){} rec = null; }
+    recArea.hidden = true; editArea.hidden = false;
+    ta.value = finalText.trim() || lastHeard;  // early stop may leave only interim results
+    updWc();
+  }
+  stopBtn.onclick = stop;
+  submitBtn.onclick = () => submitForEval(area, "speaking", data.question, ta.value.trim(), submitBtn);
+}
+
+// ───── results ─────
+const SECTION_KEYS = ["reading","listening","writing","speaking"];
+function renderResults(exam) {
+  const box = $("results");
+  box.hidden = false; box.innerHTML = "";
+  box.append(el("h1","","Results"));
+
+  const total = mcqLog.length;
+  const right = mcqLog.filter(x => x.chosen === x.correct).length;
+  const scores = evals.map(e => e.result.score);
+  const evalAvg = scores.length ? scores.reduce((a,b)=>a+b,0)/scores.length : null;
+  // the examiner names the level (eval_exam); the local formula is a fallback
+  let lvl = exam && exam.cefr;
+  if (!lvl) {
+    const parts = [];
+    if (total) parts.push(right/total*5);
+    if (evalAvg !== null) parts.push(evalAvg);
+    lvl = "—";
+    if (parts.length) {
+      const a = parts.reduce((x,y)=>x+y,0)/parts.length;
+      lvl = a >= 4.2 ? "B2+" : a >= 3.4 ? "B2" : a >= 2.6 ? "B1+" : a >= 1.8 ? "B1" : "A2";
+    }
+  }
+  const big = el("div","big-result");
+  big.append(el("div","hint","Estimated level"), el("div","lvl", lvl),
+             el("div","det", (total ? "Quizzes: " + right + "/" + total : "") +
+                             (total && evalAvg !== null ? " · " : "") +
+                             (evalAvg !== null ? "Writing/speaking: " + evalAvg.toFixed(1) + "/5" : "")));
+  box.append(big);
+
+  if (exam && exam.summary) box.append(el("div","card", exam.summary));
+
+  if (exam && exam.sections) {
+    SECTION_KEYS.filter(k => exam.sections[k]).forEach(k => {
+      const c = el("div","card");
+      const h = el("div","", SECTION_NAME[k]);
+      h.style.fontWeight = "600";
+      c.append(h, el("div","hint", exam.sections[k]));
+      box.append(c);
+    });
+  }
+
+  if (exam && exam.advice && exam.advice.length) {
+    box.append(el("h2","","What to practise"));
+    const c = el("div","card");
+    exam.advice.forEach(a => {
+      const d = el("div","", "→ " + a);
+      d.style.margin = "4px 0";
+      c.append(d);
+    });
+    box.append(c);
+  }
+
+  const secComments = sectionEvals.filter(r => r.result);
+  if (secComments.length) {
+    box.append(el("h2","","Reading & listening breakdown"));
+    secComments.forEach(r => {
+      const c = el("div","card");
+      const h = el("div","", SECTION_NAME[r.section] + " · " + r.title +
+        (typeof r.result.score === "number" ? " — " + r.result.score + "/" + r.result.total : ""));
+      h.style.fontWeight = "600";
+      c.append(h, el("div","hint mt10", r.result.feedback));
+      if (r.result.advice) c.append(el("div","ok", r.result.advice));
+      box.append(c);
+    });
+  }
+
+  const wrong = mcqLog.filter(x => x.chosen !== x.correct);
+  if (wrong.length) {
+    box.append(el("h2","","Quiz mistakes"));
+    wrong.forEach(x => {
+      const c = el("div","card");
+      c.append(el("div","", x.q));
+      const yours = el("div","hint","Your answer: " + (x.chosen != null ? x.options[x.chosen] : "—"));
+      yours.style.color = "var(--red)";
+      const corr = el("div","hint","Correct: " + x.options[x.correct]);
+      corr.style.color = "var(--green)";
+      c.append(yours, corr, el("div","hint mt10", x.explain));
+      box.append(c);
+    });
+  }
+
+  evals.forEach((e, i) => {
+    box.append(el("h2","", (e.kind === "writing" ? "Writing" : "Speaking") + " " + (i+1)));
+    box.append(evalCard(e.result));
+  });
+
+  const again = el("button","primary mt14","Take it again");
+  again.onclick = () => { box.hidden = true; $("menu").hidden = false; };
+  box.append(again);
+}
+
+// warm up TTS voices (Chrome loads them asynchronously)
+try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch(e) {}
+</script>
+</body>
+</html>

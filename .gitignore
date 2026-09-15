@@ -1,0 +1,5 @@
+.idea/
+.venv/
+server.log
+nohup.out
+__pycache__/
