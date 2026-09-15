@@ -30,20 +30,22 @@ _session_started = False
 
 def build_prompt(body):
     action = body.get("action")
+    mode = "assessment" if body.get("mode") == "assessment" else "training"
+    head = f"ACTION: {action}\nMODE: {mode}"
     if action in ("generate_reading", "generate_listening", "generate_writing", "generate_speaking"):
         topic = str(body["topic"]).strip()
-        return f"ACTION: {action}\nTOPIC: {topic}"
+        return f"{head}\nTOPIC: {topic}"
     if action in ("eval_writing", "eval_speaking"):
         task = str(body["task"]).strip()
         answer = str(body["answer"]).strip()
-        return f"ACTION: {action}\nTASK: {task}\nANSWER: {answer}"
+        return f"{head}\nTASK: {task}\nANSWER: {answer}"
     if action in ("eval_reading", "eval_listening"):
         title = str(body.get("title", "")).strip()
         answers = json.dumps(body["answers"], ensure_ascii=False)
-        return f"ACTION: {action}\nTITLE: {title}\nANSWERS: {answers}"
+        return f"{head}\nTITLE: {title}\nANSWERS: {answers}"
     if action == "eval_exam":
         results = json.dumps(body["results"], ensure_ascii=False)
-        return f"ACTION: eval_exam\nRESULTS: {results}"
+        return f"{head}\nRESULTS: {results}"
     return None
 
 

@@ -90,6 +90,14 @@
     <div class="sub">Reading, listening, writing and speaking in one place. Tasks are generated and graded by claude CLI — it remembers your mistakes within a run.</div>
 
     <div class="card">
+      <div style="font-size:14px; font-weight:600; margin-bottom:10px">Level</div>
+      <div class="grid2">
+        <button class="ghost modebtn" id="mTrainer"><span class="t">Trainer · B1/B2</span><br><span class="d">tasks tuned to your goal</span></button>
+        <button class="ghost modebtn" id="mAssess"><span class="t">Assessment</span><br><span class="d">blind placement, up to C2</span></button>
+      </div>
+    </div>
+
+    <div class="card">
       <div style="font-size:14px; font-weight:600; margin-bottom:10px">Feedback mode</div>
       <div class="grid2">
         <button class="ghost modebtn" id="mTrain"><span class="t">Practice</span><br><span class="d">feedback after every answer</span></button>
@@ -225,6 +233,7 @@ function pickN(arr, n) {
   return out;
 }
 async function api(payload) {
+  payload.mode = assessMode ? "assessment" : "training";
   const r = await fetch("/api", { method:"POST",
     headers:{ "content-type":"application/json" }, body: JSON.stringify(payload) });
   const d = await r.json();
@@ -234,7 +243,7 @@ async function api(payload) {
 function fmt(sec) { const m = Math.floor(sec/60), s = sec%60; return m + ":" + String(s).padStart(2,"0"); }
 
 // ───── state ─────
-let examMode = false, theme = "corporate", plan = [], idx = 0, cache = {}, pending = {};
+let examMode = false, assessMode = false, theme = "corporate", plan = [], idx = 0, cache = {}, pending = {};
 let mcqLog = [], evals = [], sectionEvals = [], timeLeft = 0, timerInt = null, finished = false;
 
 // ───── menu ─────
@@ -248,6 +257,15 @@ function setMode(m) {
 $("mTrain").onclick = () => setMode(false);
 $("mExam").onclick = () => setMode(true);
 setMode(false);
+
+function setAssess(a) {
+  assessMode = a;
+  $("mTrainer").style.borderColor = a ? "var(--line)" : "var(--green)";
+  $("mAssess").style.borderColor = a ? "var(--green)" : "var(--line)";
+}
+$("mTrainer").onclick = () => setAssess(false);
+$("mAssess").onclick = () => setAssess(true);
+setAssess(false);
 
 function setTheme(t) {
   theme = t;
