@@ -15,7 +15,9 @@ import json
 import os
 import shlex
 import subprocess
+import time
 import uuid
+from datetime import datetime
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
@@ -26,6 +28,18 @@ CLAUDE_ARGS = shlex.split(os.environ.get("CLAUDE_ARGS", ""))
 # One CLI session per server run: avoids repeating topics, remembers the student's errors
 SESSION_ID = str(uuid.uuid4())
 _session_started = False
+
+# Per-session history: every task, answer and evaluation, one JSON per line.
+# Used later to review progress and weak spots across sessions with AI.
+HISTORY_DIR = Path(__file__).parent / "history"
+SESSION_LOG = HISTORY_DIR / f"{time.strftime('%Y-%m-%d_%H%M%S')}_{SESSION_ID[:8]}.jsonl"
+
+
+def log_history(record):
+    record = {"ts": datetime.now().isoformat(timespec="seconds"), **record}
+    HISTORY_DIR.mkdir(exist_ok=True)
+    with SESSION_LOG.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
 def build_prompt(body):
@@ -125,6 +139,12 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(502, {"error": "CLI response violates the contract", "raw": raw[:500]})
             return
 
+        log_history({
+            "action": body["action"],
+            "mode": "assessment" if body.get("mode") == "assessment" else "training",
+            "request": {k: v for k, v in body.items() if k not in ("action", "mode")},
+            "response": data,
+        })
         self._json(200, data)
 
     def _json(self, code, obj):
@@ -145,4 +165,6 @@ if __name__ == "__main__":
     print(f"English trainer → http://localhost:{PORT}/english-trainer.html")
     print(f"AI: {CLAUDE_BIN} -p … {' '.join(CLAUDE_ARGS)}")
     print(f"Session: {SESSION_ID} (shared memory until the server restarts)")
+    print(f"History: {SESSION_LOG.relative_to(Path(__file__).parent)}")
+    log_history({"event": "session_start", "session_id": SESSION_ID, "claude_args": CLAUDE_ARGS})
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
