@@ -413,10 +413,22 @@ function renderListening(area, data) {
   let plays = 0, playing = false;
   const c = el("div","card");
   c.append(el("div","prompt", data.title),
-           el("div","hint mt10","Listen to the recording (2 plays max) and answer the questions. The script is hidden, just like in the real test."));
+           el("div","hint mt10","Listen to the recording (3 plays max) and answer the questions. The script is hidden, just like in the real test."));
+  let rate = 0.9;
+  try { rate = parseFloat(localStorage.getItem("listenRate")) || 0.9; } catch(e) {}
+  const speedRow = el("div","grid3 mt10");
+  const speedBtns = [[0.8,"Slow · 0.8×"],[0.9,"Normal · 0.9×"],[1.0,"Exam · 1.0×"]].map(([v,label]) => {
+    const b = el("button","ghost", label);
+    b.style.fontSize = "13px"; b.style.padding = "8px";
+    b.onclick = () => { rate = v; try { localStorage.setItem("listenRate", v); } catch(e) {} paint(); };
+    speedRow.append(b);
+    return [v, b];
+  });
+  function paint() { speedBtns.forEach(([v,b]) => b.style.borderColor = v === rate ? "var(--green)" : "var(--line)"); }
+  paint();
   const btn = el("button","dark mt10","▶ Play");
   const errBox = el("div","err"); errBox.hidden = true;
-  c.append(btn, errBox);
+  c.append(speedRow, btn, errBox);
   area.append(c);
   const qWrap = el("div"); qWrap.hidden = true; area.append(qWrap);
   renderMcq(qWrap, data.questions, { section:"listening", title:data.title });
@@ -427,17 +439,18 @@ function renderListening(area, data) {
   };
   const donePlaying = () => {
     playing = false;
-    btn.textContent = plays >= 2 ? "No plays left" : "▶ Play again";
-    btn.disabled = plays >= 2;
+    btn.textContent = plays >= 3 ? "No plays left" : "▶ Play again (" + (3 - plays) + " left)";
+    btn.disabled = plays >= 3;
   };
   btn.onclick = () => {
-    if (plays >= 2 || playing) return;
+    if (plays >= 3 || playing) return;
     try {
       speechSynthesis.cancel();
       playing = true; plays++;
       qWrap.hidden = false;
       btn.textContent = "Playing…"; btn.disabled = true;
       speakScript(data.script, {
+        rate,
         onEnd: donePlaying,
         onError: () => { donePlaying(); showFallback(); },
       });
@@ -574,7 +587,7 @@ function parseScript(script) {
   return chunks;
 }
 
-function speakScript(script, { onEnd, onError }) {
+function speakScript(script, { rate = 0.9, onEnd, onError }) {
   const chunks = parseScript(script);
   const voices = pickEnglishVoices();
   let i = 0, dead = false;
@@ -585,9 +598,10 @@ function speakScript(script, { onEnd, onError }) {
     const u = new SpeechSynthesisUtterance(line.text);
     const v = line.speaker === "A" ? voices.A : line.speaker === "B" ? voices.B : voices.solo;
     if (v) { u.voice = v; u.lang = v.lang; } else u.lang = "en-US";
-    u.rate = 1.0;
-    // a short breath between speaker turns, a smaller one between sentences
-    u.onend = () => setTimeout(next, line.speaker ? 380 : 220);
+    u.rate = rate;
+    // a breath between speaker turns and sentences; longer when playing slowly
+    const slow = rate < 0.95;
+    u.onend = () => setTimeout(next, line.speaker ? (slow ? 520 : 380) : (slow ? 300 : 220));
     u.onerror = (e) => {
       if (e.error === "canceled" || e.error === "interrupted") { dead = true; return; }
       dead = true; onError();
